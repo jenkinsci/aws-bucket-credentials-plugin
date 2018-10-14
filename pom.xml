@@ -10,14 +10,14 @@
 
     <groupId>uk.co.stevegal</groupId>
     <artifactId>aws-bucket-credentials</artifactId>
-    <version>0.2.3-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>hpi</packaging>
 
     <scm>
       <connection>scm:git:ssh://github.com/jenkinsci/aws-bucket-credentials-plugin.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/jenkinsci/aws-bucket-credentials-plugin.git</developerConnection>
       <url>https://github.com/jenkinsci/aws-bucket-credentials-plugin</url>
-      <tag>HEAD</tag>
+      <tag>aws-bucket-credentials-1.0.0</tag>
   </scm>
 
     <properties>
