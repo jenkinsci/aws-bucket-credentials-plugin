@@ -64,7 +64,7 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
         this.proxyPort = proxyPort;
         this.amazonS3ClientBuilder = new AwsS3ClientBuilder();
         this.amazonS3ClientBuilder.region(region);
-        if (s3Proxy) {
+        if (s3Proxy && null!=proxyHost && !proxyHost.isEmpty() && null!= proxyPort && !proxyPort.isEmpty()) {
             this.amazonS3ClientBuilder.proxyHost(proxyHost).proxyPort(Integer.parseInt(proxyPort));
         }
         this.amazonKmsClientBuilder = new AwsKmsClientBuilder();
@@ -75,7 +75,7 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
         this.kmsEncryptionContextKey = kmsEncryptionContextKey;
         this.kmsProxy = kmsProxy;
 
-        if (this.kmsProxy) {
+        if (this.kmsProxy && null!=proxyHost && !proxyHost.isEmpty() && null!= proxyPort && !proxyPort.isEmpty()) {
             this.amazonKmsClientBuilder.proxyHost(proxyHost).proxyPort(Integer.parseInt(proxyPort));
         }
     }

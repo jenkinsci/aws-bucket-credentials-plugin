@@ -393,6 +393,42 @@ public class AwsBucketCredentialsImplTest {
         verify(mockS3Object).close();
     }
 
+    @Test
+    public void proxyIsSetButNullValuesShouldNotUseProxy() {
+      AwsBucketCredentialsImpl test = new AwsBucketCredentialsImpl(CredentialsScope.GLOBAL, "myId",
+          "eu-west-1", "bucketUri", "/bucketPath", "username", true,
+          "mydescription", true,true,null,null, null, null);
+      AwsS3ClientBuilder clientBuilder = (AwsS3ClientBuilder) Whitebox.getInternalState(test, "amazonS3ClientBuilder");
+      AmazonS3Client amazonS3Client = clientBuilder.build();
+      {
+        ClientConfiguration configuration = (ClientConfiguration) Whitebox.getInternalState(amazonS3Client, "clientConfiguration");
+        assertThat(configuration.getProxyHost()).isNull();
+      }
+      AwsKmsClientBuilder awskmsClient = (AwsKmsClientBuilder) Whitebox.getInternalState(test, "amazonKmsClientBuilder");
+      {
+        String configuration = (String) Whitebox.getInternalState(awskmsClient, "host");
+        assertThat(configuration).isNull();
+      }
+    }
+
+  @Test
+  public void proxyIsSetButEmptyValuesShouldNotUseProxy() {
+    AwsBucketCredentialsImpl test = new AwsBucketCredentialsImpl(CredentialsScope.GLOBAL, "myId",
+        "eu-west-1", "bucketUri", "/bucketPath", "username", true,
+        "mydescription", true,true,null,null, "", "");
+    AwsS3ClientBuilder clientBuilder = (AwsS3ClientBuilder) Whitebox.getInternalState(test, "amazonS3ClientBuilder");
+    AmazonS3Client amazonS3Client = clientBuilder.build();
+    {
+      ClientConfiguration configuration = (ClientConfiguration) Whitebox.getInternalState(amazonS3Client, "clientConfiguration");
+      assertThat(configuration.getProxyHost()).isNull();
+    }
+    AwsKmsClientBuilder awskmsClient = (AwsKmsClientBuilder) Whitebox.getInternalState(test, "amazonKmsClientBuilder");
+    {
+      String configuration = (String) Whitebox.getInternalState(awskmsClient, "host");
+      assertThat(configuration).isNull();
+    }
+  }
+
     private byte[] serialise(Serializable object) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
