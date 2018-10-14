@@ -32,7 +32,7 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
     private final String bucketPath;
     private boolean s3Proxy;
     private String kmsEncryptionContextKey;
-    private final String kmsSecretName;
+    private final String kmsEncryptionContextValue;
 
     private String username;
     private AwsS3ClientBuilder amazonS3ClientBuilder;
@@ -41,59 +41,16 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
     private boolean kmsProxy;
     private String proxyHost;
     private String proxyPort;
-    private boolean avoidKms;
+    private boolean useKms;
 
 
     private static final Logger LOGGER = Logger.getLogger(AwsBucketCredentialsImpl.class.getName());
-
-    public static final class KmsDescription {
-        String kmsEncryptionContextKey;
-        String kmsSecretName;
-        boolean kmsProxy;
-
-        @DataBoundConstructor
-        public KmsDescription(boolean kmsProxy, String kmsSecretName, String kmsEncryptionContextKey) {
-            this.kmsProxy = kmsProxy;
-            this.kmsSecretName = kmsSecretName;
-            this.kmsEncryptionContextKey = kmsEncryptionContextKey;
-        }
-
-        public void setKmsEncryptionContextKey(String kmsEncryptionContextKey) {
-            this.kmsEncryptionContextKey = kmsEncryptionContextKey;
-        }
-
-        public String getKmsEncryptionContextKey() {
-            return kmsEncryptionContextKey;
-        }
-
-        public void setKmsProxy(boolean kmsProxy) {
-            this.kmsProxy = kmsProxy;
-        }
-
-        public boolean isKmsProxy() {
-            return kmsProxy;
-        }
-
-        public String getKmsSecretName() {
-            return kmsSecretName;
-        }
-
-        public void setKmsSecretName(String kmsSecretName) {
-            this.kmsSecretName = kmsSecretName;
-        }
-
-        @Override
-        public String toString() {
-            return super.toString()+ "(kmsProxy:"+kmsProxy+", kmsSecretName:"+kmsSecretName
-                    +", kmsEncyptionContextKey:"+kmsEncryptionContextKey+")";
-        }
-    }
 
     @DataBoundConstructor
     public AwsBucketCredentialsImpl(@CheckForNull CredentialsScope scope, @CheckForNull String id, @CheckForNull String region,
                                     @CheckForNull String bucketName, @CheckForNull String bucketPath,
                                     @CheckForNull String username, @CheckForNull boolean s3Proxy, @CheckForNull String description,
-                                    KmsDescription kmsDescription,
+                                    boolean useKms, boolean kmsProxy, String kmsEncryptionContextKey, String kmsEncryptionContextValue,
                                     String proxyHost, String proxyPort) {
         super(scope, id, description);
         this.bucketName = bucketName;
@@ -107,26 +64,24 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
         this.proxyPort = proxyPort;
         this.amazonS3ClientBuilder = new AwsS3ClientBuilder();
         this.amazonS3ClientBuilder.region(region);
-        if (s3Proxy) {
+        if (s3Proxy && null!=proxyHost && !proxyHost.isEmpty() && null!= proxyPort && !proxyPort.isEmpty()) {
             this.amazonS3ClientBuilder.proxyHost(proxyHost).proxyPort(Integer.parseInt(proxyPort));
         }
         this.amazonKmsClientBuilder = new AwsKmsClientBuilder();
         this.amazonKmsClientBuilder.region(region);
-        if (null==kmsDescription) {
-            this.avoidKms = true;
-            this.kmsSecretName = null;
-            this.kmsProxy = false;
-            this.kmsEncryptionContextKey = null;
-        } else {
-            this.avoidKms = false;
-            this.kmsEncryptionContextKey = kmsDescription.kmsEncryptionContextKey;
-            this.kmsSecretName = kmsDescription.kmsSecretName;
-            this.kmsProxy = kmsDescription.kmsProxy;
-        }
 
-        if (this.kmsProxy) {
+        this.useKms = useKms;
+        this.kmsEncryptionContextValue = kmsEncryptionContextValue;
+        this.kmsEncryptionContextKey = kmsEncryptionContextKey;
+        this.kmsProxy = kmsProxy;
+
+        if (this.kmsProxy && null!=proxyHost && !proxyHost.isEmpty() && null!= proxyPort && !proxyPort.isEmpty()) {
             this.amazonKmsClientBuilder.proxyHost(proxyHost).proxyPort(Integer.parseInt(proxyPort));
         }
+    }
+
+    public boolean isUseKms() {
+        return useKms;
     }
 
     public boolean isKmsProxy() {
@@ -187,13 +142,13 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
 
     private String decryptString(byte[] encryptedString) {
         ByteBuffer decryptByteBuffer=null;
-        if (!avoidKms){
+        if (useKms){
             DecryptRequest request = new DecryptRequest();
             LOGGER.fine("decrypting with kms");
-            if (null != this.kmsSecretName && !this.kmsSecretName.isEmpty()
+            if (null != this.kmsEncryptionContextValue && !this.kmsEncryptionContextValue.isEmpty()
                 && null != this.kmsEncryptionContextKey && !this.kmsEncryptionContextKey.isEmpty()) {
                 LOGGER.info("decrypting with context");
-                request.addEncryptionContextEntry(this.kmsEncryptionContextKey, this.kmsSecretName);
+                request.addEncryptionContextEntry(this.kmsEncryptionContextKey, this.kmsEncryptionContextValue);
             }
             request.setCiphertextBlob(ByteBuffer.wrap(encryptedString));
             DecryptResult decryptResult = this.amazonKmsClientBuilder.build().decrypt(request);
@@ -224,16 +179,12 @@ public class AwsBucketCredentialsImpl extends BaseStandardCredentials implements
         return this.kmsEncryptionContextKey;
     }
 
-    public String getKmsSecretName(){
-        return this.kmsSecretName;
+    public String getKmsEncryptionContextValue(){
+        return this.kmsEncryptionContextValue;
     }
 
     public String getRegion() {
         return region;
-    }
-
-    public KmsDescription getKmsDescription(){
-        return this.avoidKms?null:new KmsDescription(this.kmsProxy,this.kmsSecretName,this.kmsEncryptionContextKey);
     }
 
     @Extension
